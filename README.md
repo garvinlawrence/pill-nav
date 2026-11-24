@@ -10,7 +10,7 @@ It's plain HTML, CSS and JavaScript with no framework, no build step and no depe
 
 ## 🌐 Live Demo
 
-**Try it now:** https://YOUR-USERNAME.github.io/pill-nav/
+**Try it now:** https://garvinlawrence.github.io/pill-nav/
 
 ---
 
@@ -35,7 +35,7 @@ It's plain HTML, CSS and JavaScript with no framework, no build step and no depe
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR-USERNAME/pill-nav.git
+   git clone https://github.com/garvinlawrence/pill-nav.git
    cd pill-nav
    ```
 2. **Open `index.html`** in your browser. There's nothing to install.
