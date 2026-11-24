@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#04060b" />
+<title>Pill Nav: glass nav with a comet border and scroll morph</title>
+<meta name="description" content="A glass pill navigation with a travelling comet border that morphs into a compact tab nav on scroll. By Garvin Lawrence." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="nav.css" />
+<!-- Without JavaScript the phone menu can't open, so show the links inline instead. -->
+<noscript><style>.nav-toggle{display:none}@media (max-width:859px){.nav-links{position:static;opacity:1;visibility:visible;transform:none;flex-direction:row;gap:.9rem;padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}.nav-links__mail,.brand-name{display:none}}</style></noscript>
+<style>
+  /* Demo page only, not part of the nav */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; overflow-x: hidden; scroll-padding-top: 2.5rem; }
+  body { color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  body { background-color: var(--bg); background-image: radial-gradient(1200px 600px at 20% -10%, #0b2a44 0%, transparent 60%), radial-gradient(900px 500px at 90% 30%, #2a1a05 0%, transparent 60%); background-attachment: fixed; }
+  .demo-hero { min-height: 100vh; display: grid; place-content: center; text-align: center; padding: 8rem 1.5rem 4rem; }
+  .demo-hero h1 { font-size: clamp(2.2rem, 6vw, 4.5rem); font-weight: 600; line-height: 1.1; }
+  .demo-hero p { color: var(--text-muted); margin-top: 1rem; max-width: 34rem; margin-inline: auto; }
+  .demo-section { min-height: 90vh; max-width: 900px; margin: 0 auto; padding: 6rem 1.5rem; border-top: 1px solid var(--glass-border); }
+  .demo-section h2 { font-size: clamp(1.6rem, 4vw, 2.6rem); font-weight: 600; margin-bottom: 1rem; }
+  .demo-section p { color: var(--text-muted); max-width: 40rem; }
+  .demo-credit { text-align: center; padding: 3rem 1.5rem; color: var(--text-dim); font-size: .9rem; }
+  .demo-credit a { color: var(--sea-bright); }
+</style>
+</head>
+<body>
+
+<nav class="nav has-morph" id="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <div class="nm-glass" aria-hidden="true"></div>
+    <svg class="nm-svg" aria-hidden="true" focusable="false">
+      <defs>
+        <!-- outside-only cut for the glows: a big box with the nav shape punched
+             out (evenodd). A <mask> here made Safari/WebKit draw the blurred
+             glows as a visible rectangle around the nav (iPad, Nov 5 2026). -->
+        <clipPath id="nm-outside" clipPathUnits="userSpaceOnUse"><path class="nm-outside-path" clip-rule="evenodd"/></clipPath>
+        <clipPath id="nm-inside"><path class="nm-shape"/></clipPath>
+        <filter id="nm-b4"  x="-50%" y="-300%" width="200%" height="700%"><feGaussianBlur stdDeviation="4"/></filter>
+        <filter id="nm-b7"  x="-50%" y="-300%" width="200%" height="700%"><feGaussianBlur stdDeviation="7"/></filter>
+        <filter id="nm-b11" x="-50%" y="-300%" width="200%" height="700%"><feGaussianBlur stdDeviation="11"/></filter>
+        <filter id="nm-b18" x="-50%" y="-300%" width="200%" height="700%"><feGaussianBlur stdDeviation="18"/></filter>
+        <filter id="nm-b35" x="-50%" y="-300%" width="200%" height="700%"><feGaussianBlur stdDeviation="35"/></filter>
+        <filter id="nm-drop" x="-50%" y="-300%" width="200%" height="700%"><feMorphology operator="erode" radius="18"/><feGaussianBlur stdDeviation="17"/><feOffset dy="12"/></filter>
+      </defs>
+      <!-- outer glows = the old box-shadows: filled shape grown by the spread, blurred, inside masked away -->
+      <g clip-path="url(#nm-outside)">
+        <g class="nm-glow-rest">
+          <path class="nm-shape" fill="rgba(56,198,255,.3)" filter="url(#nm-b4)"/>
+          <path class="nm-shape" fill="rgba(0,163,224,.2)" stroke="rgba(0,163,224,.2)" stroke-width="2" filter="url(#nm-b11)"/>
+        </g>
+        <g class="nm-glow-lit">
+          <path class="nm-shape" fill="rgba(0,0,0,.7)" filter="url(#nm-drop)"/>
+          <path class="nm-shape" fill="rgba(56,198,255,.8)" stroke="rgba(56,198,255,.8)" stroke-width="2" filter="url(#nm-b7)"/>
+          <path class="nm-shape" fill="rgba(0,163,224,.55)" stroke="rgba(0,163,224,.55)" stroke-width="6" filter="url(#nm-b18)"/>
+          <path class="nm-shape" fill="rgba(0,163,224,.25)" stroke="rgba(0,163,224,.25)" stroke-width="16" filter="url(#nm-b35)"/>
+        </g>
+      </g>
+      <path class="nm-shape nm-inset" clip-path="url(#nm-inside)"/>
+      <path class="nm-shape nm-border"/>
+    </svg>
+    <svg class="nm-svg nm-comet-svg" aria-hidden="true" focusable="false">
+      <g class="nm-comet">
+        <path class="nav-glow-path"/><path class="nav-glow-path"/><path class="nav-glow-path"/><path class="nav-glow-path"/>
+        <path class="nav-glow-path"/><path class="nav-glow-path"/><path class="nav-glow-path"/><path class="nav-glow-path"/>
+        <path class="nav-glow-path nav-glow-path--dot"/>
+      </g>
+    </svg>
+    <a href="#top" class="nm-item nm-logo" aria-label="Garvin Lawrence, back to top">
+      <span class="brand-logo" aria-hidden="true"><span class="brand-halo"></span><span class="brand-mark"></span></span>
+    </a>
+    <a href="#about" class="nm-item nm-section"><span class="nm-section__clip"><span class="nm-section__text">About me</span></span></a>
+    <button class="nm-item nav-toggle nm-menu" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links"><span></span></button>
+    <a href="mailto:hello@example.com" class="nm-item nm-at" aria-label="Email">@</a>
+    <svg class="nav-glow-svg" aria-hidden="true" focusable="false">
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path" />
+      <rect class="nav-glow-path nav-glow-path--dot" />
+    </svg>
+    <a href="#top" class="brand">
+      <span class="brand-logo" aria-hidden="true"><span class="brand-halo"></span><span class="brand-mark"></span></span>
+      <span class="brand-name" data-text="Garvin Lawrence">Garvin Lawrence</span>
+    </a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#work">Case Studies</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li class="nav-links__contact"><a href="#contact">Contact</a></li>
+      <li class="nav-links__mail"><a href="mailto:hello@example.com">@email</a></li>
+    </ul>
+    <a href="mailto:hello@example.com" class="btn btn-glass nav-cta">@email</a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+<main class="page" id="top">
+  <header class="demo-hero">
+    <h1>Pill Nav</h1>
+    <p>A glass pill with a comet that travels its border. Scroll down: the pill bobs like a boat, then morphs into a compact tab that names the section you're in.</p>
+  </header>
+  <section class="demo-section" id="about"><h2>About me</h2><p>Once this section passes the middle of the screen, the full pill shrinks to the centre, sinks, and the logo tab rises out of it.</p></section>
+  <section class="demo-section" id="work"><h2>Case Studies</h2><p>The left slot of the compact nav rolls to the name of the section you're reading.</p></section>
+  <section class="demo-section" id="skills"><h2>Skills</h2><p>The centre button opens the same links as a dropdown. Escape closes it and focus comes back to the button.</p></section>
+  <section class="demo-section" id="contact"><h2>Contact</h2><p>Scroll back up into the hero and the morph plays in reverse.</p></section>
+  <footer class="demo-credit">Designed and built by <a href="https://garvinlawrence.com">Garvin Lawrence</a> · MIT License</footer>
+</main>
+
+<script src="nav.js"></script>
+</body>
+</html>

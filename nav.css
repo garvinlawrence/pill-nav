@@ -1,0 +1,537 @@
+/* Pill Nav — glass pill navigation with a travelling comet border,
+   a scroll "boat" bob, and a morph into a compact tab nav.
+   Designed and built by Garvin Lawrence (garvinlawrence.com). MIT License.
+   Taken from the nav on garvinlawrence.com. */
+
+:root {
+  --sea:          #00A3E0;
+  --sea-bright:   #38C6FF;
+  --sun:          #FFDD00;  
+
+  --bg:           #04060b; 
+
+  --text:         #fbfcff;
+  --text-muted:   #c3cce0;
+  /* 5.6:1 on --bg (was #5b6480, 3.4:1, under AA). Still clearly dimmer than
+     --text-muted (8.1:1), so the hierarchy holds. */
+  --text-dim:     #b1bad2;
+
+  /* liquid glass */
+  --glass-fill:      rgba(255, 255, 255, 0.055);
+  --glass-fill-hi:   rgba(255, 255, 255, 0.10);
+  --glass-border:    rgba(255, 255, 255, 0.14);
+  --glass-border-hi: rgba(255, 255, 255, 0.28);
+  --glass-shadow:    0 20px 60px -20px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255,255,255,.14); 
+
+  /* reflections — the glossy top-edge highlight liquid glass reads by */
+  --reflection-top: linear-gradient(135deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 45%);
+  --reflection-inner: inset 0 1px 1px rgba(255,255,255,.35), inset 0 -1px 1px rgba(0,0,0,.15);
+
+  --font-display: 'Poppins', -apple-system, sans-serif;
+  --font-body:    'Poppins', -apple-system, sans-serif;
+
+  --radius-md: 18px;
+  --radius-pill: 999px;
+
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --ease-liquid: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+
+/* Resets the nav needs, scoped to it and wrapped in :where() (zero
+   specificity) so they never touch the host page or outrank nav rules. */
+:where(.nav, .nav *, .nav *::before, .nav *::after) { box-sizing: border-box; margin: 0; padding: 0; }
+:where(.nav) {
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+:where(.nav) a { color: inherit; text-decoration: none; }
+:where(.nav) ul { list-style: none; }
+:where(.nav) button { font: inherit; cursor: pointer; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .5rem;
+  padding: .85rem 1.7rem;
+  border-radius: var(--radius-pill);
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: .95rem;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  transition: transform .4s var(--ease-liquid), box-shadow .4s var(--ease), background .4s var(--ease), border-color .4s var(--ease);
+}
+.btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--reflection-top);
+}
+.btn:active { transform: scale(.96); }
+
+.btn-glass {
+  background: var(--glass-fill-hi);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border-hi);
+  color: var(--text);
+  box-shadow: 0 8px 24px -10px rgba(0,0,0,.6), var(--reflection-inner);
+}
+/* :focus-visible added alongside :hover (was hover-only) — every standalone
+   .btn-glass outside the hero CTAs (the nav's @email pill, and the "All
+   case studies"/"Next: [Company]" links on every case-study page) has no
+   other focus treatment beyond the generic global outline, so keyboard
+   users got a plain ring instead of the lift/brighten mouse users see. The
+   hero CTAs already get this parity a different way, through the
+   .btn-fx-wrap:has(.btn-fx:focus-visible) wrapper rule below — this covers
+   everywhere that pattern doesn't reach. Found in the Sep 28 2026 re-test. */
+.btn-glass:hover, .btn-glass:focus-visible {
+  background: rgba(255,255,255,.16);
+  border-color: rgba(255,255,255,.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -8px rgba(0,163,224,.45), var(--reflection-inner);
+}
+
+/* ══════════════════════════════════════
+   Nav
+══════════════════════════════════════ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 1.1rem clamp(1.25rem, 4vw, 3rem);
+}
+.nav-inner {
+  max-width: 1180px; margin-inline: auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .6rem .7rem .6rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  /* Persistent blue border-glow at rest (not scroll-gated) — dimmer version
+     of the .nav.scrolled treatment below, which brightens it further once
+     the pill has a background to glow against. */
+  border: 1px solid rgba(56,198,255,.4);
+  box-shadow:
+    0 0 8px 0 rgba(56,198,255,.3),
+    0 0 22px 1px rgba(0,163,224,.2);
+  transition: background .4s var(--ease), border-color .4s var(--ease), box-shadow .4s var(--ease);
+  position: relative; isolation: isolate;
+}
+/* The scrolled pill's frosted blur lives on this pseudo-element, not on
+   .nav-inner itself. A backdrop-filter on an element makes it the containing
+   block for its position:fixed descendants — and the mobile menu
+   (.nav-links) is a fixed child of .nav-inner, so once the page scrolled the
+   menu was positioned relative to the pill instead of the viewport (inset
+   from the screen edges) and lost its own blur, letting the hero content
+   show through it. */
+.nav-inner::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  opacity: 0;
+  transition: opacity .4s var(--ease);
+}
+.nav.scrolled .nav-inner::before { opacity: 1; }
+.nav.scrolled .nav-inner {
+  background: rgba(8,12,22,.55);
+  /* Blue glow to match the logo mark's own drop-shadow (--sea) instead of
+     the neutral glass border used elsewhere — pushed brighter/more
+     saturated to match the neon border-glow reference */
+  border-color: rgba(56,198,255,.9);
+  box-shadow:
+    0 12px 34px -18px rgba(0,0,0,.7),
+    0 0 14px 1px rgba(56,198,255,.8),
+    0 0 36px 3px rgba(0,163,224,.55),
+    0 0 70px 8px rgba(0,163,224,.25),
+    inset 0 0 0 1px rgba(160,225,255,.5);
+}
+
+/* A glowing line that travels the pill's own border — same idea as
+   .work-progress-dot riding the end of its track, just looping the whole
+   nav perimeter instead of tracking a fill.
+   Went through several CSS-only versions first (a dot, trailing copies of
+   it, a stardust-speck trail, a rotating bar on offset-path) before this
+   one. The rotating-bar version looked right at first (its bounding box
+   genuinely changed shape at the corners, confirming it WAS rotating) —
+   but a real screenshot showed the actual problem: a straight rigid bar
+   rotating as a whole can only ever approximate a curve as a straight
+   chord cutting across it, no matter how it's rotated. Fixed with real
+   SVG path-stroking instead: a <rect> with rx/ry matching the pill's own
+   rounded ends, stroked and animated via stroke-dasharray/dashoffset — a
+   stroke genuinely bends WITH the path at every point.
+   First pass at this (3 layered dash copies) fixed the corner-hugging but
+   introduced a new problem — another real screenshot showed 3 visibly
+   separate glowing segments with dark gaps between them, not one smooth
+   fade, and no distinct bright point at the front. Two causes: too few
+   layers spaced too far apart (the browser's actual arc-length for a
+   rounded-rect's dasharray doesn't exactly match the hand-calculated
+   perimeter used for timing, so "should overlap" math wasn't reliable),
+   and nothing was shaped like an actual head. Fixed by going to 8 tail
+   copies at a much finer delay step (comfortably overlapping even with
+   real-world arc-length error) for a genuinely blended fade, plus one
+   extra short, thick, full-opacity dash (.nav-glow-path--dot) riding the
+   exact same mechanism at zero delay — same phase as the frontmost tail
+   layer by construction, not something synced by hand, so it always sits
+   exactly at the leading edge as a distinct bright point.
+   nav.js measures .nav-inner's real rendered size on load/resize/
+   fonts.ready (same discipline as the work-gallery pin and the About-text
+   line splitting elsewhere in this file) and sets every rect's x/y/width/
+   height/rx plus its own stroke-dasharray/dashoffset range — a
+   fixed-in-CSS geometry would drift out of sync the moment the pill's
+   width changes responsively. */
+.nav-glow-svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible; /* the glow filter needs to bleed past the SVG's own box */
+  pointer-events: none;
+}
+.nav-glow-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke: var(--sea-bright);
+  stroke-width: 3px;
+  opacity: .216; /* was .12 — three lifts per Garvin (Oct 10 2026): .144, .173, now .216 */
+  filter: drop-shadow(0 0 4px var(--sea)); /* glow alpha was 60%, 72%, 86% */
+  animation: navLineTravel 32s linear infinite; /* was 26s — slowed further per Garvin; nav.js's DURATION constant must match */
+}
+/* 8 tail copies, each a little brighter and a little less delayed than
+   the last, so every one sits a little further forward along the path
+   than the one before it — nth-of-type(1) is painted first (furthest
+   back/dimmest), nth-of-type(8) last (closest to the front, before the
+   dedicated head dot on top of all of them). */
+.nav-glow-path:nth-of-type(1) { opacity: .03; stroke-width: 1px;   animation-delay: 1.7s; }
+.nav-glow-path:nth-of-type(2) { opacity: .06; stroke-width: 1.5px; animation-delay: 1.3s; }
+.nav-glow-path:nth-of-type(3) { opacity: .1;  stroke-width: 2.1px; animation-delay: .95s; }
+.nav-glow-path:nth-of-type(4) { opacity: .19; animation-delay: .40s; }
+.nav-glow-path:nth-of-type(5) { opacity: .26; animation-delay: .32s; }
+.nav-glow-path:nth-of-type(6) { opacity: .298; animation-delay: .24s; }
+.nav-glow-path:nth-of-type(7) { opacity: .414; animation-delay: .16s; }
+.nav-glow-path:nth-of-type(8) { opacity: .54; animation-delay: .08s; }
+/* Tail fade (Oct 10 2026): only the END of the trail tapers. Layers 4-8
+   are the body, at full 3px width and their original tight spacing
+   (4 and 5 carry a little extra opacity to make up for 1-3 no longer
+   overlapping them). Layers 1-3 trail well behind the body, each thinner
+   and fainter than the last, so the back end thins and fades out instead
+   of stopping in a blunt stub. A first attempt tapered five layers and
+   visibly thinned the whole trail - Garvin: "just the back of it". */
+.nav-glow-path--dot {
+  /* 20% brighter per Garvin (Oct 10 2026): opacity can only go from .9 to 1
+     (+11%), so the rest comes from a brightness() lift ahead of the glow. */
+  opacity: 1;
+  stroke-width: 7px;
+  stroke: color-mix(in srgb, var(--sea-bright) 58%, white);
+  filter:
+    brightness(1.32) /* was 1.08, then 1.2 */
+    drop-shadow(0 0 3.5px color-mix(in srgb, var(--sea-bright) 58%, white))
+    drop-shadow(0 0 8px var(--sea-bright));
+  animation-delay: 0s;
+}
+/* The dot's own dash is only 16px long, while every tail layer's dash is
+   110px — so even at the SAME animation-delay: 0s baseline, the brightest
+   tail layer (nth-of-type(8), delay .08s — barely behind the dot in time)
+   still reaches ~94px further forward along the path than the dot does,
+   simply because its dash is 94px longer. A real screenshot showed exactly
+   this: the dot sitting well behind the tail's own leading tip, not at the
+   front of the trail. --lead (set per-element in JS, from the same
+   DASH/DASH_DOT constants that produced that 94px gap, so it can't drift
+   out of sync with them) shifts the dot's dashoffset a constant number of
+   PIXELS forward along the path — not a time-based delay, which would
+   need to vary with the nav's own responsive width/perimeter to stay
+   correct. Tail layers get no --lead (falls back to 0px) and are
+   unaffected. */
+@keyframes navLineTravel {
+  from { stroke-dashoffset: calc(var(--nav-glow-perimeter, 0px) - var(--lead, 0px)); }
+  to   { stroke-dashoffset: calc(0px - var(--lead, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-glow-svg { display: none; }
+}
+
+.brand {
+  display: flex; align-items: center; gap: .6rem;
+  /* single source of truth so the mark and the wordmark can never drift
+     out of sync in height again */
+  --brand-size: 1.4rem;
+  position: relative;
+}
+/* ~35.8px-tall link: invisible padding brings the tap target to 44px+ without
+   growing the pill. -4px landed at 43.84px — 0.16px short of the 44px
+   target (found in the Sep 28 2026 re-test); -4.5px clears it with a bit
+   of real margin instead of another razor-thin fix. */
+.brand::after { content: ''; position: absolute; inset: -4.5px -6px; }
+.brand-logo {
+  position: relative; flex: none;
+  width: calc(var(--brand-size) * 1.3); height: calc(var(--brand-size) * 1.3);
+  /* GL_Logo_W.svg inlined: Chrome blocks a CSS mask image loaded from a
+     separate file under file:// (opaque origin), so the mark vanished when
+     the page was opened locally. A data URI works from file:// and a server. */
+  --logo-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='13.69 76.48 583.48 626.02'%3E%3Cpath fill='white' d='M268.749,198.147l-0.366,135.408l-66.557,71.042h66.923l-0.796,297.899h255.62l73.59-69.012l-249.75,0.009 l1.372-225.82l94.951-0.503c0,0-1.669,38.842-65.91,88.326c-1.21,0.932,52.957,54.863,52.957,54.863 s129.058-102.917,110.001-220.509l-192.252,0.486l0.177-65.353L268.749,198.147z'/%3E%3Cpath fill='white' d='M280.485,76.477c65.497,1.02,125.832,24.56,176.843,71.36c2.548,2.338,2.419,3.62,0.12,6.005 c-16.598,17.226-33.089,34.554-49.499,51.957c-1.931,2.048-2.97,2.155-5.041,0.191c-25.587-24.259-55.699-40.386-90.512-46.809 c-59.003-10.885-111.801,2.947-157.1,42.062c-33.408,28.847-53.627,65.532-59.715,109.011 c-7.978,56.977,7.812,107.239,47.102,149.753c24.32,26.315,54.34,43.635,89.345,52.317c2.12,0.526,2.815,1.379,2.8,3.631 c-0.158,24.846-0.216,49.694-0.181,74.541c0.004,2.575-0.763,2.997-3.152,2.569c-52.399-9.388-98.09-31.957-136.589-68.431 c-39.31-37.242-65.181-82.258-75.594-135.08c-16.155-81.949,2.437-155.971,56.337-220.376c37.568-44.889,85.93-73.25,143.336-86.34 C237.91,78.522,257.142,76.687,280.485,76.477z'/%3E%3C/svg%3E");
+}
+/* The mark is the white logo used as a mask over a plain fill, so the
+   fill colour is easy to swap. The cyan halo is a separate blurred sibling,
+   because a filter on the masked mark itself would be masked away. */
+.brand-mark, .brand-halo::before {
+  content: ''; position: absolute; inset: 0;
+  -webkit-mask: var(--logo-mask) center / contain no-repeat;
+  mask: var(--logo-mask) center / contain no-repeat;
+}
+.brand-mark { background: #fff; }
+.brand-halo { position: absolute; inset: 0; filter: blur(6px); opacity: .85; }
+.brand-halo::before { background: var(--sea-bright); }
+.brand-name {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--brand-size);
+  font-weight: 300;
+  letter-spacing: .01em;
+  color: var(--text);
+  /* Neon-sign halo hugging the glyph edges — text itself stays fully
+     solid/opaque, this just glows around it. */
+  text-shadow:
+    0 0 4px rgba(56,198,255,.6),
+    0 0 12px rgba(0,163,224,.5),
+    0 0 26px rgba(0,163,224,.35);
+}
+/* Shimmer: a duplicate copy of the text is layered on top, clipped to the
+   glyph shapes via background-clip:text, with a bright band swept across
+   it. Only that overlay ever goes transparent, never the real text
+   underneath — and it's blue-only, to match the edge glow above. */
+.brand-name::after {
+  content: attr(data-text);
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg,
+    transparent 35%,
+    var(--sea-bright) 50%,
+    transparent 65%);
+  background-size: 250% 100%;
+  background-position: -100% 0;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  pointer-events: none;
+  animation: brandShimmer 4.5s ease-in-out infinite;
+}
+@keyframes brandShimmer {
+  0%, 25% { background-position: -100% 0; }
+  75%, 100% { background-position: 100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-name::after { animation: none; display: none; }
+}
+
+.nav-links {
+  display: flex; align-items: center; gap: 2rem;
+}
+.nav-links a {
+  font-size: .88rem; font-weight: 600; color: var(--text-muted);
+  transition: color .25s var(--ease);
+  position: relative;
+}
+.nav-links a:hover, .nav-links a:focus-visible { color: var(--text); }
+/* Invisible enlarged hit area: the link text is only ~20px tall, under the
+   44px touch-target minimum, and padding would move the layout. ::before is
+   free here (the underline uses ::after). */
+.nav-links a::before { content: ''; position: absolute; inset: -12px -8px; }
+.nav-links a::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px;
+  background: linear-gradient(90deg, var(--sea-bright), var(--sun));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s var(--ease);
+}
+.nav-links a:hover::after, .nav-links a:focus-visible::after { transform: scaleX(1); }
+
+.nav-cta { display: none; }
+.nav-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--glass-fill-hi);
+  border: 1px solid var(--glass-border);
+}
+.nav-toggle span, .nav-toggle span::before, .nav-toggle span::after {
+  content: ''; display: block; width: 16px; height: 1.6px; background: var(--text);
+  position: relative; transition: transform .3s var(--ease), opacity .3s var(--ease);
+}
+.nav-toggle span::before { position: absolute; top: -5px; }
+.nav-toggle span::after { position: absolute; top: 5px; }
+.nav.open .nav-toggle span { background: transparent; }
+.nav.open .nav-toggle span::before { transform: translateY(5px) rotate(45deg); }
+.nav.open .nav-toggle span::after { transform: translateY(-5px) rotate(-45deg); }
+
+@media (min-width: 860px) {
+  .nav-cta { display: inline-flex; }
+  .nav-toggle { display: none; }
+}
+@media (max-width: 859px) {
+  .nav-links {
+    position: fixed; top: 5.2rem; left: 1rem; right: 1rem;
+    flex-direction: column; align-items: flex-start; gap: 1.1rem;
+    padding: 1.5rem 1.5rem 1.8rem;
+    background: rgba(8,12,22,.75);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--glass-shadow);
+    opacity: 0; visibility: hidden; transform: translateY(-10px);
+    transition: opacity .3s var(--ease), transform .3s var(--ease), visibility .3s;
+  }
+  .nav.open .nav-links { opacity: 1; visibility: visible; transform: translateY(0); }
+  .nav-links a { font-size: 1rem; }
+  .nav-links { gap: 1.4rem; }
+}
+
+.nav-links__mail { display: none; }
+@media (max-width: 859px) { .nav-links__mail { display: list-item; } }
+
+/* ══════════════════════════════════════
+   Nav morph (homepage only: .nav.has-morph)
+   Nov 5 2026, from test/nav-boat + test/nav-morph. Past the hero the
+   full-width pill shrinks to the centre, sinks, and a tab rises out of it
+   with the logo (Garvin's Figma "Nav top"/"Nav Bottom" design, scaled to
+   the nav's own height); the left slot names the current section, the
+   centre button opens the existing links. Because a CSS rounded box can't
+   take that shape, the pill's border, glows (the old box-shadows), inner
+   line, frosted fill and comet trace are redrawn from one SVG/clip path
+   (.nm-*) that nav.js morphs; .nav-inner's own chrome is switched
+   off here. Every value is copied from .nav-inner / .nav.scrolled
+   .nav-inner above. Case-study pages don't have .has-morph and keep the
+   original nav untouched.
+══════════════════════════════════════ */
+
+.nav.has-morph .nav-inner,
+.nav.has-morph.scrolled .nav-inner { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.nav.has-morph .nav-inner::before { display: none !important; }
+.has-morph .nav-inner > .nav-glow-svg:not(.nm-svg) { display: none !important; }
+
+.nm-glass, .nm-svg { position: absolute; left: -1px; top: -1px; pointer-events: none; }
+.nm-glass {
+  z-index: -1;
+  background: rgba(8,12,22,.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  opacity: 0; transition: opacity .4s var(--ease);
+}
+.nav.scrolled .nm-glass { opacity: 1; }
+.nm-svg { overflow: visible; z-index: 0; }
+/* The blurred glows sit on their own GPU layer so the comet, which repaints
+   every frame, never makes them re-blur; they only redraw while morphing. */
+.nm-svg:not(.nm-comet-svg) { will-change: transform; }
+.nm-border { fill: none; stroke: rgba(56,198,255,.4); stroke-width: 1px; transition: stroke .4s var(--ease); }
+.nav.scrolled .nm-border { stroke: rgba(56,198,255,.9); }
+.nm-inset { fill: none; stroke: rgba(160,225,255,.5); stroke-width: 3px; opacity: 0; transition: opacity .4s var(--ease); }
+.nav.scrolled .nm-inset { opacity: 1; }
+.nm-glow-rest, .nm-glow-lit { transition: opacity .4s var(--ease); }
+.nm-glow-lit { opacity: 0; }
+.nav.scrolled .nm-glow-rest { opacity: 0; }
+.nav.scrolled .nm-glow-lit { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .nm-comet { display: none; } }
+
+/* Expanded-state content fades out first, compact content fades in last */
+.has-morph .nav-inner > .brand, .has-morph .nav-inner > .nav-cta, .has-morph .nav-inner > .nav-toggle:not(.nm-menu) { transition: opacity .2s var(--ease) .5s, visibility 0s linear .5s; }
+@media (min-width: 860px) {
+  .has-morph .nav-inner > .nav-links { transition: opacity .2s var(--ease) .5s, visibility 0s linear .5s; }
+  /* Going compact: the inline links fade out where they are first; the
+     dropdown layout below only applies once .nm-menu-ready is added (after
+     the fade), so the panel never flashes in under the pill. */
+  .nav.nm-compact:not(.nm-menu-ready) .nav-inner > .nav-links { opacity: 0; visibility: hidden; transition: opacity .16s var(--ease), visibility 0s linear .16s; }
+}
+/* Going back to the full pill: the links stay hidden for a moment so they
+   change layout while invisible, then fade in with the brand. */
+.nav.nm-settling .nav-inner > .nav-links { opacity: 0 !important; visibility: hidden !important; transition: none !important; }
+.nav.nm-compact .nav-inner > .brand,
+.nav.nm-compact .nav-inner > .nav-cta,
+.nav.nm-compact .nav-inner > .nav-toggle:not(.nm-menu) { opacity: 0; visibility: hidden; transition: opacity .16s var(--ease), visibility 0s linear .16s; }
+
+.nm-item {
+  position: absolute; z-index: 2;
+  opacity: 0; visibility: hidden;
+  transition: opacity .16s var(--ease), visibility 0s linear .16s;
+}
+.nav.nm-compact .nm-item { opacity: 1; visibility: visible; transition: opacity .3s var(--ease) .5s, visibility 0s linear .5s; }
+.nav.nm-compact { pointer-events: none; }
+.nav.nm-compact .nm-item, .nav.nm-compact .nav-links, .nav.nm-compact .nm-glass { pointer-events: auto; }
+
+.nm-logo { --brand-size: 1.4rem; left: 50%; top: var(--nm-logo-y, 30px); transform: translate(-50%, -50%); display: block; }
+.nm-logo::after { content: ''; position: absolute; inset: -8px; }
+.nm-logo .brand-logo { display: block; }
+.nm-menu { left: 50%; top: var(--nm-mid, 32px); transform: translate(-50%, -50%); }
+.nav .nm-menu { display: flex; }
+.nm-section, .nm-at {
+  top: var(--nm-mid, 32px); transform: translateY(-50%);
+  font-size: .88rem; font-weight: 600; color: var(--text-muted);
+  transition-property: opacity, visibility, color;
+}
+.nm-section {
+  left: var(--nm-left, 20px); height: 1.4em; white-space: nowrap;
+  /* positioned with top, not translateY: a transform on HDR text (or its
+     ancestors) can flatten the glow back to SDR white */
+  top: calc(var(--nm-mid, 32px) - .7em); transform: none;
+  color: #fff;
+}
+.nm-section:hover, .nm-section:focus-visible { color: #fff; }
+.nm-at { left: var(--nm-right, 200px); transform: translate(-100%, -50%); font-size: 1rem; }
+.nm-section:hover, .nm-at:hover, .nm-section:focus-visible, .nm-at:focus-visible { color: var(--text); }
+.nm-section::before { content: ''; position: absolute; inset: -12px -10px; }
+.nm-at::before { content: ''; position: absolute; inset: -12px -14px; } /* 44px+ target */
+.nm-section__clip { display: block; height: 1.4em; overflow: hidden; }
+/* Same gradient underline as the nav links (.nav-links a::after). */
+.nm-section::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px;
+  background: linear-gradient(90deg, var(--sea-bright), var(--sun));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s var(--ease);
+}
+.nm-section:hover::after, .nm-section:focus-visible::after { transform: scaleX(1); }
+.nm-section__text { display: block; line-height: 1.4em; transition: transform .35s var(--ease), opacity .35s var(--ease); }
+.nm-section__text.is-out { transform: translateY(-100%); opacity: 0; }
+.nm-section__text.is-in { transform: translateY(100%); opacity: 0; transition: none; }
+
+/* Compact menu: the existing #nav-links, dropped below the compact pill
+   (absolute, so the bob's transform can't throw a fixed panel off). */
+.nav.nm-compact.nm-menu-ready .nav-links {
+  position: absolute; top: var(--nm-menu-top, 140px); left: 50%; right: auto;
+  width: min(300px, calc(100vw - 2rem));
+  flex-direction: column; align-items: flex-start; gap: 1.1rem;
+  padding: 1.5rem 1.5rem 1.8rem;
+  background: rgba(8,12,22,.75);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow);
+  opacity: 0; visibility: hidden; transform: translate(-50%, -10px);
+  transition: opacity .3s var(--ease), transform .3s var(--ease), visibility .3s;
+}
+.nav.nm-compact.nm-menu-ready.open .nav-links { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.nav.nm-compact.nm-menu-ready .nav-links a { font-size: 1rem; }
+.nav.nm-compact.nm-menu-ready .nav-links__mail { display: list-item; }
+/* Contact only lives in the dropdown (compact + phone menu); the desktop
+   row already has the @email button. */
+.nav-links__contact { display: none; }
+@media (max-width: 859px) { .nav-links__contact { display: list-item; } }
+.nav.nm-compact.nm-menu-ready .nav-links__contact { display: list-item; }
+@media (min-width: 860px) {
+  /* expanded desktop links fade with the rest */
+  .nav.nm-compact:not(.open) .nav-links { pointer-events: none; }
+}
+/* Anchor jumps: below 1024px a section's eyebrow sits under the compact
+   pill, so leave room for it (--nm-pad is the pill's bottom, set by JS). */
+@media (max-width: 1023px) {
+  html.has-nav-morph { scroll-padding-top: var(--nm-pad, 2.5rem); }
+}
+/* Reduced motion: no fades or delays on the nav's swap either. */
+@media (prefers-reduced-motion: reduce) {
+  .has-morph .nav-inner > *, .has-morph .nm-item,
+  .nav.nm-compact.nm-menu-ready .nav-links { transition: none !important; }
+}
+
+/* Focus ring for the nav's links and buttons */
+:where(.nav) :focus-visible { outline: 2px solid var(--sea-bright); outline-offset: 3px; }
